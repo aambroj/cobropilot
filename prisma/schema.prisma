@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id          String     @id @default(cuid())
+  email       String     @unique
+  name        String?
+  companyName String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  customers   Customer[]
+  invoices    Invoice[]
+  reminders   Reminder[]
+}
+
+model Customer {
+  id        String    @id @default(cuid())
+  userId    String
+  name      String
+  email     String?
+  phone     String?
+  company   String?
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoices  Invoice[]
+
+  @@index([userId])
+}
+
+model Invoice {
+  id            String        @id @default(cuid())
+  userId        String
+  customerId    String
+  concept       String
+  invoiceNumber String?
+  amount        Decimal       @db.Decimal(10, 2)
+  dueDate       DateTime
+  status        InvoiceStatus @default(PENDING)
+  notes         String?
+  paidAt        DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customer      Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  reminders     Reminder[]
+
+  @@index([userId])
+  @@index([customerId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+model Reminder {
+  id          String         @id @default(cuid())
+  userId      String
+  invoiceId   String
+  channel     ReminderChannel
+  scheduledAt DateTime
+  sentAt      DateTime?
+  status      ReminderStatus @default(PENDING)
+  message     String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoice     Invoice        @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([invoiceId])
+  @@index([scheduledAt])
+  @@index([status])
+}
+
+enum InvoiceStatus {
+  PENDING
+  OVERDUE
+  PAID
+  CANCELLED
+}
+
+enum ReminderChannel {
+  EMAIL
+  WHATSAPP
+  PHONE
+}
+
+enum ReminderStatus {
+  PENDING
+  SENT
+  FAILED
+  CANCELLED
+}
