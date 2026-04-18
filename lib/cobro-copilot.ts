@@ -75,14 +75,18 @@ function getSuggestedChannel(
   }
 
   if (daysLate >= 7) {
-    return lastChannel === "EMAIL" ? "WHATSAPP" : "WHATSAPP";
+    if (lastChannel === "WHATSAPP") return "PHONE";
+    if (lastChannel === "EMAIL") return "WHATSAPP";
+    return "EMAIL";
   }
 
   if (daysLate >= 1) {
-    return sentCount === 0 ? "EMAIL" : "WHATSAPP";
+    if (sentCount === 0) return "EMAIL";
+    if (lastChannel === "EMAIL") return "WHATSAPP";
+    return "EMAIL";
   }
 
-  if (amount >= 500) return "EMAIL";
+  if (amount >= 800) return "EMAIL";
   return "WHATSAPP";
 }
 
@@ -110,18 +114,18 @@ function buildSuggestedMessage(params: {
     : "la factura pendiente";
 
   if (params.daysLate <= 0) {
-    return `Hola ${params.customerName}, te escribo para dejarte localizada ${reference} por ${amountText}, con vencimiento ${dueDateText}. Gracias.`;
+    return `Hola ${params.customerName}, te dejo localizada ${reference} por ${amountText}, con vencimiento ${dueDateText}. Quedo pendiente. Gracias.`;
   }
 
   if (params.daysLate <= 7 && params.sentCount === 0) {
-    return `Hola ${params.customerName}, te escribo para recordarte que ${reference} por ${amountText} venció el ${dueDateText} y sigue pendiente. ¿Puedes confirmarme por favor la previsión de pago? Gracias.`;
+    return `Hola ${params.customerName}, te escribo para recordarte que ${reference} por ${amountText} venció el ${dueDateText} y sigue pendiente. ¿Me puedes confirmar por favor la previsión de pago? Gracias.`;
   }
 
   if (params.daysLate <= 21) {
-    return `Hola ${params.customerName}, sigo pendiente de ${reference} por ${amountText}, vencida el ${dueDateText}. ¿Puedes indicarme hoy cuándo quedará abonada? Gracias.`;
+    return `Hola ${params.customerName}, sigo pendiente de ${reference} por ${amountText}, vencida el ${dueDateText}. Necesito por favor fecha concreta de pago para dejarlo actualizado hoy.`;
   }
 
-  return `Hola ${params.customerName}, necesitamos cerrar ${reference} por ${amountText}, vencida el ${dueDateText} hace ${params.daysLate} días. Por favor, necesito confirmación y fecha de pago hoy.`;
+  return `Hola ${params.customerName}, necesitamos cerrar ${reference} por ${amountText}, vencida el ${dueDateText} hace ${params.daysLate} días. Necesito confirmación y fecha de pago hoy, por favor.`;
 }
 
 function getNextAction(params: {
@@ -134,7 +138,13 @@ function getNextAction(params: {
   }
 
   if (params.daysLate >= 7) {
-    return `Manda ${params.channel === "PHONE" ? "llamada" : params.channel === "WHATSAPP" ? "WhatsApp" : "email"} hoy y pide fecha concreta de pago.`;
+    return `Manda ${
+      params.channel === "PHONE"
+        ? "llamada"
+        : params.channel === "WHATSAPP"
+          ? "WhatsApp"
+          : "email"
+    } hoy y pide fecha concreta de pago.`;
   }
 
   if (params.daysLate >= 1) {
@@ -163,7 +173,7 @@ function getWhy(params: {
   } else if (params.daysLate >= 1) {
     reasons.push(`acaba de entrar en retraso (${params.daysLate} días)`);
   } else {
-    reasons.push("vence pronto o está todavía en plazo");
+    reasons.push("vence pronto o sigue todavía en plazo");
   }
 
   if (params.amount >= 1000) {
@@ -216,7 +226,11 @@ function getPriorityLabel(score: number): "Muy alta" | "Alta" | "Media" {
   return "Media";
 }
 
-function getRiskLabel(daysLate: number, sentCount: number, amount: number): "Alto" | "Medio" | "Bajo" {
+function getRiskLabel(
+  daysLate: number,
+  sentCount: number,
+  amount: number
+): "Alto" | "Medio" | "Bajo" {
   if (daysLate >= 21 || (daysLate >= 10 && amount >= 500) || sentCount >= 2) {
     return "Alto";
   }
@@ -289,10 +303,10 @@ export function buildCobroCopilot(invoices: CopilotInvoiceInput[]) {
         : `Hoy conviene atacar primero ${recommendations[0].customerName}.`,
     secondary:
       recommendations.length === 0
-        ? "Cuando existan facturas pendientes o vencidas, el copilot propondrá prioridad, canal y mensaje."
+        ? "Cuando existan facturas pendientes o vencidas, el Copilot propondrá prioridad, canal y mensaje."
         : urgent.length > 0
-        ? `${urgent.length} cobros merecen atención alta o muy alta.`
-        : "De momento no hay alertas críticas, pero sí acciones preventivas.",
+          ? `${urgent.length} cobros merecen atención alta o muy alta.`
+          : "De momento no hay alertas críticas, pero sí acciones preventivas.",
   };
 
   return {

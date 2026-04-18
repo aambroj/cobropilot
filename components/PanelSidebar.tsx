@@ -23,7 +23,7 @@ export default function PanelSidebar({ currentPath }: PanelSidebarProps) {
           <h2 className="mt-2 text-2xl font-bold text-slate-900">
             Panel interno
           </h2>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-sm leading-6 text-slate-500">
             Clientes, facturas y recordatorios en un solo sitio.
           </p>
         </Link>
@@ -40,8 +40,8 @@ export default function PanelSidebar({ currentPath }: PanelSidebarProps) {
                 href={link.href}
                 className={
                   isActive
-                    ? "flex items-center rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white"
-                    : "flex items-center rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                    ? "flex items-center rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold !text-white shadow-sm"
+                    : "flex items-center rounded-2xl bg-white px-4 py-3 text-sm font-semibold !text-slate-700 transition hover:bg-slate-100 hover:!text-slate-950"
                 }
               >
                 {link.label}
@@ -59,7 +59,7 @@ export default function PanelSidebar({ currentPath }: PanelSidebarProps) {
           <p className="mt-2 text-sm font-semibold text-slate-900">
             MVP en marcha
           </p>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-sm leading-6 text-slate-600">
             Ya puedes gestionar el flujo base de cobros.
           </p>
         </div>

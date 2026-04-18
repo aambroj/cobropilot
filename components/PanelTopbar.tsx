@@ -21,11 +21,11 @@ export default async function PanelTopbar({ currentPath }: PanelTopbarProps) {
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="flex items-center justify-between gap-4 px-4 py-4 md:px-6 lg:px-8">
-        <div>
+        <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
             CobroPilot
           </p>
-          <h1 className="mt-1 text-xl font-bold text-slate-900">
+          <h1 className="mt-1 truncate text-xl font-bold text-slate-900">
             {currentLabel}
           </h1>
         </div>
@@ -45,7 +45,7 @@ export default async function PanelTopbar({ currentPath }: PanelTopbarProps) {
 
           <Link
             href="/"
-            className="inline-flex rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700"
+            className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold !text-slate-800 transition hover:border-slate-300 hover:!text-slate-950"
           >
             Ver portada
           </Link>

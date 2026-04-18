@@ -4,6 +4,17 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import PanelShell from "@/components/PanelShell";
 
+type RecordatoriosPageProps = {
+  searchParams?: Promise<{
+    invoiceId?: string;
+    channel?: string;
+    message?: string;
+    status?: string;
+    q?: string;
+    filterChannel?: string;
+  }>;
+};
+
 function formatDate(value: Date) {
   return new Intl.DateTimeFormat("es-ES", {
     day: "2-digit",
@@ -19,6 +30,14 @@ function formatCurrency(value: number) {
     style: "currency",
     currency: "EUR",
   }).format(value);
+}
+
+function normalizeText(value: string | null | undefined) {
+  return (value ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
 }
 
 function getChannelLabel(channel: string) {
@@ -77,6 +96,29 @@ function getInvoiceStatusLabel(status: string) {
     default:
       return status;
   }
+}
+
+function buildFilterHref(params: {
+  status: string;
+  filterChannel: string;
+  q: string;
+}) {
+  const search = new URLSearchParams();
+
+  if (params.status !== "ALL") {
+    search.set("status", params.status);
+  }
+
+  if (params.filterChannel !== "ALL") {
+    search.set("filterChannel", params.filterChannel);
+  }
+
+  if (params.q.trim()) {
+    search.set("q", params.q.trim());
+  }
+
+  const query = search.toString();
+  return query ? `/recordatorios?${query}` : "/recordatorios";
 }
 
 async function createReminder(formData: FormData) {
@@ -155,8 +197,38 @@ async function updateReminderStatus(formData: FormData) {
   revalidatePath("/recordatorios");
 }
 
-export default async function RecordatoriosPage() {
+export default async function RecordatoriosPage({
+  searchParams,
+}: RecordatoriosPageProps) {
   const user = await requireUser();
+
+  const resolvedSearchParams = (await searchParams) ?? {};
+  const prefilledInvoiceId = resolvedSearchParams.invoiceId?.trim() ?? "";
+  const prefilledChannel = ["EMAIL", "WHATSAPP", "PHONE"].includes(
+    resolvedSearchParams.channel ?? ""
+  )
+    ? (resolvedSearchParams.channel as "EMAIL" | "WHATSAPP" | "PHONE")
+    : "EMAIL";
+  const prefilledMessage = resolvedSearchParams.message?.trim() ?? "";
+
+  const rawStatus = (resolvedSearchParams.status ?? "ALL").trim().toUpperCase();
+  const currentStatus = ["ALL", "PENDING", "SENT", "FAILED", "CANCELLED"].includes(
+    rawStatus
+  )
+    ? rawStatus
+    : "ALL";
+
+  const rawFilterChannel = (resolvedSearchParams.filterChannel ?? "ALL")
+    .trim()
+    .toUpperCase();
+  const currentFilterChannel = ["ALL", "EMAIL", "WHATSAPP", "PHONE"].includes(
+    rawFilterChannel
+  )
+    ? rawFilterChannel
+    : "ALL";
+
+  const currentQuery = (resolvedSearchParams.q ?? "").trim();
+  const normalizedQuery = normalizeText(currentQuery);
 
   if (!user) {
     return (
@@ -174,7 +246,7 @@ export default async function RecordatoriosPage() {
             </p>
             <Link
               href="/"
-              className="mt-6 inline-flex rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+              className="mt-6 inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold !text-white transition hover:bg-slate-800"
             >
               Volver al dashboard
             </Link>
@@ -224,10 +296,41 @@ export default async function RecordatoriosPage() {
   const sentCount = reminders.filter((reminder) => reminder.status === "SENT").length;
   const cancelledCount = reminders.filter((reminder) => reminder.status === "CANCELLED").length;
 
+  const prefilledInvoice = prefilledInvoiceId
+    ? invoices.find((invoice) => invoice.id === prefilledInvoiceId) ?? null
+    : null;
+
+  const filteredReminders = reminders.filter((reminder) => {
+    if (currentStatus !== "ALL" && reminder.status !== currentStatus) {
+      return false;
+    }
+
+    if (currentFilterChannel !== "ALL" && reminder.channel !== currentFilterChannel) {
+      return false;
+    }
+
+    if (!normalizedQuery) {
+      return true;
+    }
+
+    const haystack = normalizeText(
+      [
+        reminder.invoice.customer.name,
+        reminder.invoice.customer.company ?? "",
+        reminder.invoice.invoiceNumber ?? "",
+        reminder.invoice.concept,
+        reminder.message ?? "",
+        getChannelLabel(reminder.channel),
+        getReminderStatusLabel(reminder.status),
+      ].join(" ")
+    );
+
+    return haystack.includes(normalizedQuery);
+  });
+
   return (
     <PanelShell currentPath="/recordatorios">
       <div className="mx-auto max-w-7xl space-y-6">
-
         <section className="rounded-3xl bg-gradient-to-r from-slate-900 to-slate-800 p-6 text-white shadow-sm md:p-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
@@ -245,13 +348,13 @@ export default async function RecordatoriosPage() {
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/facturas"
-                className="inline-flex rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white backdrop-blur-sm"
+                className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold !text-white backdrop-blur-sm transition hover:bg-white/15"
               >
                 Ver facturas
               </Link>
               <Link
                 href="/clientes"
-                className="inline-flex rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white backdrop-blur-sm"
+                className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold !text-white backdrop-blur-sm transition hover:bg-white/15"
               >
                 Ver clientes
               </Link>
@@ -290,6 +393,19 @@ export default async function RecordatoriosPage() {
               Crea un aviso manual asociado a una factura.
             </p>
 
+            {prefilledInvoice ? (
+              <div className="mt-5 rounded-2xl border border-sky-200 bg-sky-50 p-4">
+                <p className="text-sm font-semibold text-sky-800">
+                  Has llegado desde Facturas con un mensaje ya preparado.
+                </p>
+                <p className="mt-2 text-sm text-sky-700">
+                  Factura: {prefilledInvoice.invoiceNumber || "Sin número"} ·{" "}
+                  {prefilledInvoice.customer.name} ·{" "}
+                  {formatCurrency(Number(prefilledInvoice.amount))}
+                </p>
+              </div>
+            ) : null}
+
             {invoices.length === 0 ? (
               <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5">
                 <p className="text-sm text-slate-600">
@@ -297,7 +413,7 @@ export default async function RecordatoriosPage() {
                 </p>
                 <Link
                   href="/facturas"
-                  className="mt-4 inline-flex rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+                  className="mt-4 inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold !text-white transition hover:bg-slate-800"
                 >
                   Ir a facturas
                 </Link>
@@ -312,7 +428,7 @@ export default async function RecordatoriosPage() {
                     name="invoiceId"
                     required
                     className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-900"
-                    defaultValue=""
+                    defaultValue={prefilledInvoiceId || ""}
                   >
                     <option value="" disabled>
                       Selecciona una factura
@@ -333,7 +449,7 @@ export default async function RecordatoriosPage() {
                     <select
                       name="channel"
                       required
-                      defaultValue="EMAIL"
+                      defaultValue={prefilledChannel}
                       className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-900"
                     >
                       <option value="EMAIL">Email</option>
@@ -361,7 +477,8 @@ export default async function RecordatoriosPage() {
                   </label>
                   <textarea
                     name="message"
-                    rows={4}
+                    rows={5}
+                    defaultValue={prefilledMessage}
                     className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-slate-900"
                     placeholder="Ej. Hola, te escribo para recordarte que la factura sigue pendiente de pago."
                   />
@@ -369,7 +486,7 @@ export default async function RecordatoriosPage() {
 
                 <button
                   type="submit"
-                  className="inline-flex rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white"
+                  className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold !text-white transition hover:bg-slate-800"
                 >
                   Guardar recordatorio
                 </button>
@@ -378,26 +495,216 @@ export default async function RecordatoriosPage() {
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col gap-4">
               <div>
                 <h2 className="text-xl font-bold text-slate-900">
                   Recordatorios guardados
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Aquí puedes cambiar el estado, editar o eliminar.
+                  Filtra, busca y cambia el estado rápido desde aquí.
                 </p>
               </div>
+
+              <form method="get" className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_180px_auto]">
+                <div className="min-w-0">
+                  <input
+                    type="text"
+                    name="q"
+                    defaultValue={currentQuery}
+                    placeholder="Buscar por cliente, mensaje, factura o canal"
+                    className="w-full min-w-0 rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-slate-900"
+                  />
+                </div>
+
+                <div className="min-w-0">
+                  <select
+                    name="status"
+                    defaultValue={currentStatus}
+                    className="w-full min-w-0 rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-900"
+                  >
+                    <option value="ALL">Todos los estados</option>
+                    <option value="PENDING">Pendientes</option>
+                    <option value="SENT">Enviados</option>
+                    <option value="FAILED">Fallidos</option>
+                    <option value="CANCELLED">Cancelados</option>
+                  </select>
+                </div>
+
+                <div className="min-w-0">
+                  <select
+                    name="filterChannel"
+                    defaultValue={currentFilterChannel}
+                    className="w-full min-w-0 rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-900"
+                  >
+                    <option value="ALL">Todos los canales</option>
+                    <option value="EMAIL">Email</option>
+                    <option value="WHATSAPP">WhatsApp</option>
+                    <option value="PHONE">Teléfono</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="submit"
+                    className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold !text-white transition hover:bg-slate-800"
+                  >
+                    Filtrar
+                  </button>
+                  <Link
+                    href="/recordatorios"
+                    className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold !text-slate-800 transition hover:border-slate-300 hover:!text-slate-950"
+                  >
+                    Limpiar
+                  </Link>
+                </div>
+              </form>
+
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href={buildFilterHref({
+                    status: "ALL",
+                    filterChannel: currentFilterChannel,
+                    q: currentQuery,
+                  })}
+                  className={
+                    currentStatus === "ALL"
+                      ? "inline-flex rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold !text-white"
+                      : "inline-flex rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold !text-slate-700"
+                  }
+                >
+                  Todos
+                </Link>
+                <Link
+                  href={buildFilterHref({
+                    status: "PENDING",
+                    filterChannel: currentFilterChannel,
+                    q: currentQuery,
+                  })}
+                  className={
+                    currentStatus === "PENDING"
+                      ? "inline-flex rounded-full bg-amber-600 px-4 py-2 text-xs font-semibold !text-white"
+                      : "inline-flex rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-700"
+                  }
+                >
+                  Pendientes
+                </Link>
+                <Link
+                  href={buildFilterHref({
+                    status: "SENT",
+                    filterChannel: currentFilterChannel,
+                    q: currentQuery,
+                  })}
+                  className={
+                    currentStatus === "SENT"
+                      ? "inline-flex rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold !text-white"
+                      : "inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-700"
+                  }
+                >
+                  Enviados
+                </Link>
+                <Link
+                  href={buildFilterHref({
+                    status: "FAILED",
+                    filterChannel: currentFilterChannel,
+                    q: currentQuery,
+                  })}
+                  className={
+                    currentStatus === "FAILED"
+                      ? "inline-flex rounded-full bg-rose-600 px-4 py-2 text-xs font-semibold !text-white"
+                      : "inline-flex rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-semibold text-rose-700"
+                  }
+                >
+                  Fallidos
+                </Link>
+                <Link
+                  href={buildFilterHref({
+                    status: "CANCELLED",
+                    filterChannel: currentFilterChannel,
+                    q: currentQuery,
+                  })}
+                  className={
+                    currentStatus === "CANCELLED"
+                      ? "inline-flex rounded-full bg-slate-700 px-4 py-2 text-xs font-semibold !text-white"
+                      : "inline-flex rounded-full border border-slate-200 bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-700"
+                  }
+                >
+                  Cancelados
+                </Link>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href={buildFilterHref({
+                    status: currentStatus,
+                    filterChannel: "ALL",
+                    q: currentQuery,
+                  })}
+                  className={
+                    currentFilterChannel === "ALL"
+                      ? "inline-flex rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold !text-white"
+                      : "inline-flex rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold !text-slate-700"
+                  }
+                >
+                  Todos los canales
+                </Link>
+                <Link
+                  href={buildFilterHref({
+                    status: currentStatus,
+                    filterChannel: "EMAIL",
+                    q: currentQuery,
+                  })}
+                  className={
+                    currentFilterChannel === "EMAIL"
+                      ? "inline-flex rounded-full bg-sky-700 px-4 py-2 text-xs font-semibold !text-white"
+                      : "inline-flex rounded-full border border-sky-200 bg-sky-50 px-4 py-2 text-xs font-semibold text-sky-700"
+                  }
+                >
+                  Email
+                </Link>
+                <Link
+                  href={buildFilterHref({
+                    status: currentStatus,
+                    filterChannel: "WHATSAPP",
+                    q: currentQuery,
+                  })}
+                  className={
+                    currentFilterChannel === "WHATSAPP"
+                      ? "inline-flex rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold !text-white"
+                      : "inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-700"
+                  }
+                >
+                  WhatsApp
+                </Link>
+                <Link
+                  href={buildFilterHref({
+                    status: currentStatus,
+                    filterChannel: "PHONE",
+                    q: currentQuery,
+                  })}
+                  className={
+                    currentFilterChannel === "PHONE"
+                      ? "inline-flex rounded-full bg-violet-700 px-4 py-2 text-xs font-semibold !text-white"
+                      : "inline-flex rounded-full border border-violet-200 bg-violet-50 px-4 py-2 text-xs font-semibold text-violet-700"
+                  }
+                >
+                  Teléfono
+                </Link>
+              </div>
+
+              <p className="text-sm text-slate-500">
+                Mostrando {filteredReminders.length} de {reminders.length} recordatorios.
+              </p>
             </div>
 
-            {reminders.length === 0 ? (
+            {filteredReminders.length === 0 ? (
               <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6">
                 <p className="text-sm text-slate-600">
-                  Todavía no hay recordatorios. Crea el primero desde el formulario.
+                  No hay recordatorios que coincidan con ese filtro.
                 </p>
               </div>
             ) : (
               <div className="mt-5 space-y-4">
-                {reminders.map((reminder) => (
+                {filteredReminders.map((reminder) => (
                   <div
                     key={reminder.id}
                     className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
@@ -420,13 +727,13 @@ export default async function RecordatoriosPage() {
                         </span>
                         <Link
                           href={`/recordatorios/${reminder.id}/editar`}
-                          className="inline-flex rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white"
+                          className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold !text-white transition hover:bg-slate-800"
                         >
                           Editar
                         </Link>
                         <Link
                           href={`/recordatorios/${reminder.id}/eliminar`}
-                          className="inline-flex rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700"
+                          className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
                         >
                           Eliminar
                         </Link>
@@ -462,7 +769,7 @@ export default async function RecordatoriosPage() {
                         <input type="hidden" name="nextStatus" value="PENDING" />
                         <button
                           type="submit"
-                          className="inline-flex rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700"
+                          className="inline-flex items-center justify-center rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 transition hover:bg-amber-100"
                         >
                           Marcar pendiente
                         </button>
@@ -473,7 +780,7 @@ export default async function RecordatoriosPage() {
                         <input type="hidden" name="nextStatus" value="SENT" />
                         <button
                           type="submit"
-                          className="inline-flex rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700"
+                          className="inline-flex items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100"
                         >
                           Marcar enviado
                         </button>
@@ -484,7 +791,7 @@ export default async function RecordatoriosPage() {
                         <input type="hidden" name="nextStatus" value="FAILED" />
                         <button
                           type="submit"
-                          className="inline-flex rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700"
+                          className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
                         >
                           Marcar fallido
                         </button>
@@ -495,7 +802,7 @@ export default async function RecordatoriosPage() {
                         <input type="hidden" name="nextStatus" value="CANCELLED" />
                         <button
                           type="submit"
-                          className="inline-flex rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700"
+                          className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold !text-slate-700 transition hover:border-slate-300 hover:!text-slate-900"
                         >
                           Cancelar
                         </button>

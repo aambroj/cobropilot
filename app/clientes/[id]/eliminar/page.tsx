@@ -84,11 +84,12 @@ export default async function EliminarClientePage({
               No hay usuario demo
             </h1>
             <p className="mt-3 text-slate-600">
-              Antes de eliminar clientes, carga los datos demo o crea el primer usuario.
+              Antes de eliminar clientes, carga los datos demo o crea el primer
+              usuario.
             </p>
             <Link
               href="/clientes"
-              className="mt-6 inline-flex rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+              className="mt-6 inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold !text-white transition hover:bg-slate-800"
             >
               Volver a clientes
             </Link>
@@ -120,32 +121,32 @@ export default async function EliminarClientePage({
 
   return (
     <PanelShell currentPath="/clientes">
-      <div className="mx-auto max-w-5xl space-y-6">
-
-        <section className="rounded-3xl bg-gradient-to-r from-rose-700 to-rose-600 p-6 text-white shadow-sm md:p-8">
+      <div className="mx-auto max-w-6xl space-y-6">
+        <section className="rounded-[32px] border border-rose-700 bg-gradient-to-r from-rose-800 via-rose-700 to-rose-600 p-6 text-white shadow-sm md:p-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-rose-100">
                 CobroPilot
               </p>
-              <h1 className="mt-3 text-3xl font-bold md:text-4xl">
+              <h1 className="mt-3 text-3xl font-black md:text-4xl">
                 Eliminar cliente
               </h1>
-              <p className="mt-3 max-w-2xl text-sm text-rose-50 md:text-base">
-                Acción delicada. Solo se permite eliminar clientes que no tengan facturas asociadas.
+              <p className="mt-3 max-w-3xl text-sm text-rose-50 md:text-base">
+                Acción delicada. Solo se permite eliminar clientes que no tengan
+                facturas asociadas.
               </p>
             </div>
 
             <div className="flex flex-wrap gap-3">
               <Link
                 href={`/clientes/${customer.id}`}
-                className="inline-flex rounded-xl bg-white px-4 py-2 text-sm font-semibold text-rose-700"
+                className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2 text-sm font-semibold !text-rose-700 transition hover:bg-rose-50"
               >
                 Volver a la ficha
               </Link>
               <Link
                 href="/clientes"
-                className="inline-flex rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white backdrop-blur-sm"
+                className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold !text-white backdrop-blur-sm transition hover:bg-white/15"
               >
                 Lista de clientes
               </Link>
@@ -153,103 +154,124 @@ export default async function EliminarClientePage({
           </div>
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
-          <h2 className="text-xl font-bold text-slate-900">Comprobación previa</h2>
+        <section className="grid gap-6 lg:grid-cols-[0.86fr_1.14fr]">
+          <div className="space-y-6">
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+              <h2 className="text-xl font-bold text-slate-900">
+                Comprobación previa
+              </h2>
 
-          <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm text-slate-500">Cliente</p>
-              <p className="mt-2 text-lg font-semibold text-slate-900">
-                {customer.name}
-              </p>
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-sm text-slate-500">Cliente</p>
+                  <p className="mt-2 text-lg font-semibold text-slate-900">
+                    {customer.name}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-sm text-slate-500">Empresa</p>
+                  <p className="mt-2 text-lg font-semibold text-slate-900">
+                    {customer.company || "—"}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-sm text-slate-500">Email</p>
+                  <p className="mt-2 break-all text-lg font-semibold text-slate-900">
+                    {customer.email || "—"}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-sm text-slate-500">Facturas asociadas</p>
+                  <p className="mt-2 text-lg font-semibold text-slate-900">
+                    {customer._count.invoices}
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm text-slate-500">Empresa</p>
-              <p className="mt-2 text-lg font-semibold text-slate-900">
-                {customer.company || "—"}
-              </p>
-            </div>
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+              <h2 className="text-xl font-bold text-slate-900">Qué ocurrirá</h2>
 
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm text-slate-500">Email</p>
-              <p className="mt-2 text-lg font-semibold text-slate-900">
-                {customer.email || "—"}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm text-slate-500">Facturas asociadas</p>
-              <p className="mt-2 text-lg font-semibold text-slate-900">
-                {customer._count.invoices}
-              </p>
+              {isBlocked ? (
+                <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                  <p className="text-sm font-semibold text-amber-800">
+                    No se puede eliminar este cliente.
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-amber-700">
+                    Tiene facturas asociadas. Para mantener el histórico
+                    consistente, primero tendrías que gestionar esas facturas.
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4">
+                  <p className="text-sm font-semibold text-rose-800">
+                    Este cliente sí se puede eliminar.
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-rose-700">
+                    Si confirmas, desaparecerá del panel y dejará de estar
+                    disponible para nuevas facturas o seguimientos.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
-          {isBlocked ? (
-            <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
-              <p className="text-sm font-semibold text-amber-800">
-                No se puede eliminar este cliente.
-              </p>
-              <p className="mt-2 text-sm text-amber-700">
-                Tiene facturas asociadas. Para mantener la consistencia del histórico, primero tendrías que gestionar esas facturas.
-              </p>
-            </div>
-          ) : (
-            <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 p-5">
-              <p className="text-sm font-semibold text-rose-800">
-                Este cliente sí se puede eliminar.
-              </p>
-              <p className="mt-2 text-sm text-rose-700">
-                Para confirmar, escribe exactamente <span className="font-bold">ELIMINAR</span> y pulsa el botón.
-              </p>
-            </div>
-          )}
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+            <h2 className="text-xl font-bold text-slate-900">
+              Confirmación final
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Para confirmar, escribe exactamente <span className="font-semibold">ELIMINAR</span>.
+            </p>
 
-          {error === "confirm" ? (
-            <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-              La confirmación no coincide. Escribe exactamente ELIMINAR.
-            </div>
-          ) : null}
+            {error === "confirm" ? (
+              <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+                La confirmación no coincide. Escribe exactamente ELIMINAR.
+              </div>
+            ) : null}
 
-          {error === "blocked" ? (
-            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
-              Este cliente ya no puede eliminarse porque ahora tiene facturas asociadas.
-            </div>
-          ) : null}
+            {error === "blocked" ? (
+              <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+                Este cliente ya no puede eliminarse porque ahora tiene facturas asociadas.
+              </div>
+            ) : null}
 
-          <form action={deleteCustomer} className="mt-6 space-y-4">
-            <input type="hidden" name="customerId" value={customer.id} />
+            <form action={deleteCustomer} className="mt-6 space-y-4">
+              <input type="hidden" name="customerId" value={customer.id} />
 
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">
-                Confirmación
-              </label>
-              <input
-                name="confirmation"
-                disabled={isBlocked}
-                placeholder="Escribe ELIMINAR"
-                className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:bg-slate-100 focus:border-slate-900"
-              />
-            </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Confirmación
+                </label>
+                <input
+                  name="confirmation"
+                  disabled={isBlocked}
+                  placeholder="Escribe ELIMINAR"
+                  className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:bg-slate-100 focus:border-slate-900"
+                />
+              </div>
 
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="submit"
-                disabled={isBlocked}
-                className="inline-flex rounded-2xl bg-rose-600 px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
-              >
-                Eliminar definitivamente
-              </button>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="submit"
+                  disabled={isBlocked}
+                  className="inline-flex items-center justify-center rounded-2xl bg-rose-600 px-5 py-3 text-sm font-semibold !text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                >
+                  Eliminar definitivamente
+                </button>
 
-              <Link
-                href={`/clientes/${customer.id}`}
-                className="inline-flex rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-700"
-              >
-                Cancelar
-              </Link>
-            </div>
-          </form>
+                <Link
+                  href={`/clientes/${customer.id}`}
+                  className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold !text-slate-700 transition hover:border-slate-300 hover:!text-slate-900"
+                >
+                  Cancelar
+                </Link>
+              </div>
+            </form>
+          </div>
         </section>
       </div>
     </PanelShell>
